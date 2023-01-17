@@ -55,7 +55,7 @@ def get_types(df):
 
 
 # Create a dash application
-app = dash.Dash(__name__)
+app = dash.Dash(__name__,meta_tags=[{'name':'viewport','content':'width=device-width,initial-scale=1'}])
 server = app.server
 
 # Build dash app layout
@@ -75,18 +75,6 @@ app.layout = html.Div(children=[ html.H1('Magic the Gathering Card Analysis',
                                 html.Div([ ],id='type-plot', style={'width':'65%'})
                                 ])
 
-""" Compute_info function description
-
-This function takes in airline data and selected year as an input and performs computation for creating charts and plots.
-
-Arguments:
-    airline_data: Input airline data.
-    entered_year: Input year for which computation needs to be performed.
-
-Returns:
-    Computed average dataframes for carrier delay, weather delay, NAS delay, security delay, and late aircraft delay.
-
-"""
 
 """Callback Function
 
