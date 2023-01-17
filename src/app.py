@@ -1,17 +1,58 @@
 # Import required libraries
 import pandas as pd
+import numpy as np
 import plotly.graph_objects as go
 import dash
 from dash import html
 from dash import dcc
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 import plotly.express as px
+import plotly.figure_factory as ff
 
-# Read the airline data into pandas dataframe
-airline_data =  pd.read_csv('https://cf-courses-data.s3.us.cloud-object-storage.appdomain.cloud/IBMDeveloperSkillsNetwork-DV0101EN-SkillsNetwork/Data%20Files/airline_data.csv',
-                            encoding = "ISO-8859-1",
-                            dtype={'Div1Airport': str, 'Div1TailNum': str,
-                                   'Div2Airport': str, 'Div2TailNum': str})
+# Read the card data data into pandas dataframe
+
+card_data = pd.read_csv('https://raw.githubusercontent.com/akonic13/mtg-app/main/card_data_test.csv')
+df = card_data.dropna(subset=['Price'], axis=0)
+
+dfall = df.dropna(subset=['Price'], axis=0)
+
+# drop cards over $30
+# df2 = df[df['Price']<=30.00]
+# df2 = df2[df2['Rarity']!='S']
+
+# df for rarities
+dfC = dfall[dfall['Rarity'] == 'C']
+dfU = dfall[dfall['Rarity'] == 'U']
+dfR = dfall[dfall['Rarity'] == 'R']
+dfM = dfall[dfall['Rarity'] == 'M']
+'''
+Count occurences of the 7 card types
+'''
+
+
+def get_types(df):
+    def typer(cardtype):
+        if cardtype in [np.nan]:
+            return 0
+
+        elif cardtype.find(_) != -1:
+            return 1
+        else:
+            return 0
+
+    types = ['Land', 'Creature', 'Artifact', 'Enchantment', 'Instant', 'Sorcery', 'Planeswalker']
+    typecount = []
+    for i, _ in enumerate(types):
+        typecount.append(float(df['Card_type1'].apply(typer).sum()) + float(df['Card_type2'].apply(typer).sum()))
+        df[_] = df['Card_type1'].apply(typer) + df['Card_type2'].apply(typer)
+
+    dftypes = pd.DataFrame(data={'Type': types, 'Count': np.array(typecount)})
+    dftypes = dftypes.sort_values(by='Count')
+    dfcolor = df['Color'].value_counts().reset_index()
+    dfcolor = dfcolor.rename(columns={'Color': 'Count', 'index': 'Color'})
+
+    return df,dftypes,dfcolor
+
 
 # Create a dash application
 app = dash.Dash(__name__)
@@ -21,25 +62,17 @@ server = app.server
 app.layout = html.Div(children=[ html.H1('Magic the Gathering Card Analysis',
                                 style={'textAlign': 'center', 'color': '#503D36',
                                 'font-size': 30}),
-                                dcc.Dropdown(options=[
+                                dcc.Dropdown(id='input-rarity',options=[
                                     {'label': 'Common','value': 'C'},
                                     {'label':'Uncommon','value': 'U'},
                                     {'label':'Rare','value':'R'},
-                                    {'label': 'Mythic Rare','value':'M'}],placeholder='Select a card rarity',style={'text-align-last':'center'}),
-                                html.Br(),
-                                html.Br(),
+                                    {'label': 'Mythic Rare','value':'M'},
+                                    {'label':'All rarities','value':'all'}],placeholder='Select a card rarity',style={'text-align-last':'center'}),
                                 # Segment 1
-                                html.Div([
-                                        html.Div(dcc.Graph(id='carrier-plot')),
-                                        html.Div(dcc.Graph(id='weather-plot'))
-                                ], style={'display': 'flex'}),
                                 # Segment 2
-                                html.Div([
-                                        html.Div(dcc.Graph(id='nas-plot')),
-                                        html.Div(dcc.Graph(id='security-plot'))
-                                ], style={'display': 'flex'}),
+                                html.Div([ ],id='color-plot', style={'width':'65%'}),
                                 # Segment 3
-                                html.Div(dcc.Graph(id='late-plot'), style={'width':'65%'})
+                                html.Div([ ],id='type-plot', style={'width':'65%'})
                                 ])
 
 """ Compute_info function description
@@ -54,16 +87,6 @@ Returns:
     Computed average dataframes for carrier delay, weather delay, NAS delay, security delay, and late aircraft delay.
 
 """
-def compute_info(airline_data, entered_year):
-    # Select data
-    df =  airline_data[airline_data['Year']==int(entered_year)]
-    # Compute delay averages
-    avg_car = df.groupby(['Month','Reporting_Airline'])['CarrierDelay'].mean().reset_index()
-    avg_weather = df.groupby(['Month','Reporting_Airline'])['WeatherDelay'].mean().reset_index()
-    avg_NAS = df.groupby(['Month','Reporting_Airline'])['NASDelay'].mean().reset_index()
-    avg_sec = df.groupby(['Month','Reporting_Airline'])['SecurityDelay'].mean().reset_index()
-    avg_late = df.groupby(['Month','Reporting_Airline'])['LateAircraftDelay'].mean().reset_index()
-    return avg_car, avg_weather, avg_NAS, avg_sec, avg_late
 
 """Callback Function
 
@@ -78,32 +101,39 @@ Returns:
     List of figures computed using the provided helper function `compute_info`.
 """
 # Callback decorator
-@app.callback( [
-               Output(component_id='carrier-plot', component_property='figure'),
-               Output(component_id='weather-plot', component_property='figure'),
-               Output(component_id='nas-plot', component_property='figure'),
-               Output(component_id='security-plot', component_property='figure'),
-               Output(component_id='late-plot', component_property='figure')
-               ],
-               Input(component_id='input-year', component_property='value'))
+@app.callback([Output(component_id='type-plot', component_property='children'),
+               Output(component_id='color-plot', component_property='children')],Input(component_id='input-rarity', component_property='value'))
 # Computation to callback function and return graph
-def get_graph(entered_year):
+def get_graph(rarity):
+    if rarity == 'all':
+        df,types,color = get_types(dfall)
+        type_fig = px.histogram(types.sort_values('Count'),x='Type',y='Count',title='Type Distribution')
+        color_fig = px.histogram(color.sort_values('Count'), x='Color', y='Count', title='Type Distribution')
+        #type_fig = px.histogram(dfall, x='Color', y=dfall['Color'].value_counts().tolist(), title='Type Distribution')
+        return[dcc.Graph(figure=type_fig),dcc.Graph(figure=color_fig)]
+    if rarity == 'C':
+        df, types,color = get_types(dfC)
+        type_fig = px.histogram(types.sort_values('Count'), x='Type', y='Count', title='Type Distribution')
+        color_fig = px.histogram(color.sort_values('Count'), x='Color', y='Count', title='Type Distribution')
+        return [dcc.Graph(figure=type_fig), dcc.Graph(figure=color_fig)]
+    if rarity == 'U':
+        df, types,color = get_types(dfU)
+        type_fig = px.histogram(types.sort_values('Count'), x='Type', y='Count', title='Type Distribution')
+        color_fig = px.histogram(color.sort_values('Count'), x='Color', y='Count', title='Type Distribution')
+        return [dcc.Graph(figure=type_fig), dcc.Graph(figure=color_fig)]
+    if rarity == 'R':
+        df, types,color = get_types(dR)
+        type_fig = px.histogram(types.sort_values('Count'), x='Type', y='Count', title='Type Distribution')
+        color_fig = px.histogram(color.sort_values('Count'), x='Color', y='Count', title='Type Distribution')
+        return [dcc.Graph(figure=type_fig), dcc.Graph(figure=color_fig)]
+    if rarity == 'M':
+        df, types,color = get_types(dfM)
+        type_fig = px.histogram(types.sort_values('Count'), x='Type', y='Count', title='Type Distribution')
+        color_fig = px.histogram(color.sort_values('Count'), x='Color', y='Count', title='Type Distribution')
+        return [dcc.Graph(figure=type_fig), dcc.Graph(figure=color_fig)]
 
-    # Compute required information for creating graph from the data
-    avg_car, avg_weather, avg_NAS, avg_sec, avg_late = compute_info(airline_data, entered_year)
-
-    # Line plot for carrier delay
-    carrier_fig = px.line(avg_car, x='Month', y='CarrierDelay', color='Reporting_Airline', title='Average carrrier delay time (minutes) by airline')
-    # Line plot for weather delay
-    weather_fig = px.line(avg_weather, x='Month', y='WeatherDelay', color='Reporting_Airline', title='Average weather delay time (minutes) by airline')
-    # Line plot for nas delay
-    nas_fig = px.line(avg_NAS, x='Month', y='NASDelay', color='Reporting_Airline', title='Average NAS delay time (minutes) by airline')
-    # Line plot for security delay
-    sec_fig = px.line(avg_sec, x='Month', y='SecurityDelay', color='Reporting_Airline', title='Average security delay time (minutes) by airline')
-    # Line plot for late aircraft delay
-    late_fig = px.line(avg_late, x='Month', y='LateAircraftDelay', color='Reporting_Airline', title='Average late aircraft delay time (minutes) by airline')
-
-    return[carrier_fig, weather_fig, nas_fig, sec_fig, late_fig]
+    else:
+        return []
 
 
 # Run the app
