@@ -122,7 +122,7 @@ def get_graph(rarity):
         color_fig = px.histogram(color.sort_values('Count'), x='Color', y='Count', title='Type Distribution')
         return [dcc.Graph(figure=type_fig), dcc.Graph(figure=color_fig)]
     if rarity == 'R':
-        df, types,color = get_types(dR)
+        df, types,color = get_types(dfR)
         type_fig = px.histogram(types.sort_values('Count'), x='Type', y='Count', title='Type Distribution')
         color_fig = px.histogram(color.sort_values('Count'), x='Color', y='Count', title='Type Distribution')
         return [dcc.Graph(figure=type_fig), dcc.Graph(figure=color_fig)]
