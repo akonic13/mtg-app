@@ -70,9 +70,9 @@ app.layout = html.Div(children=[ html.H1('Magic the Gathering Card Analysis',
                                     {'label':'All rarities','value':'all'}],placeholder='Select a card rarity',style={'text-align-last':'center'}),
                                 # Segment 1
                                 # Segment 2
-                                html.Div([ ],id='color-plot', style={'width':'65%'}),
+                                html.Div([ ],id='color-plot'),
                                 # Segment 3
-                                html.Div([ ],id='type-plot', style={'width':'65%'})
+                                html.Div([ ],id='type-plot')
                                 ])
 
 
