@@ -4,7 +4,7 @@ import numpy as np
 import plotly.graph_objects as go
 import dash
 from dash import html
-from dash import dcc
+from dash import dcc, dash_table
 from dash.dependencies import Input, Output, State
 import plotly.express as px
 import plotly.figure_factory as ff
@@ -12,6 +12,7 @@ import plotly.figure_factory as ff
 # Read the card data data into pandas dataframe
 
 card_data = pd.read_csv('https://raw.githubusercontent.com/akonic13/mtg-app/main/card_data_test.csv')
+dftest = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/solar.csv')
 df = card_data.dropna(subset=['Price'], axis=0)
 
 dfall = df.dropna(subset=['Price'], axis=0)
@@ -20,6 +21,13 @@ dfall = df.dropna(subset=['Price'], axis=0)
 # df2 = df[df['Price']<=30.00]
 dfall = dfall[dfall['Rarity']!='S']
 dfall = dfall[dfall['Rarity']!='B']
+
+def remove_legend(card_type):
+    if pd.isnull(card_type) != True:
+        card_type = card_type.replace('Legendary','')
+    return card_type
+
+dfall['Card_type2'] = dfall['Card_type2'].apply(remove_legend)
 
 # df for rarities
 dfC = dfall[dfall['Rarity'] == 'C']
@@ -80,12 +88,13 @@ app.layout = html.Div(children=[ html.H1('Magic the Gathering Card Analysis: Com
                                     {'label': 'Mythic Rare','value':'M'},
                                     {'label':'All rarities','value':'all'}],placeholder='Select a card rarity',style={'text-align-last':'center'}),
                                 # Segment 1
+                                dash_table.DataTable(id='card-table',data=df.to_dict('records'),columns=[{'name':i,'id':i} for i in df.columns],style_cell={'textAlign':'center'},page_size=10),
                                 # Segment 2
                                 html.Div([ ],id='color-plot'),
                                 # Segment 3
                                 html.Div([ ],id='type-plot'),
-                                 html.Div([ ],id='price-plot'),
-                                 html.Div([ ],id='price2-plot')
+                                html.Div([ ],id='price-plot'),
+                                html.Div([ ],id='price2-plot')
                                 ])
 
 
@@ -105,7 +114,8 @@ Returns:
 @app.callback([Output(component_id='type-plot', component_property='children'),
                Output(component_id='color-plot', component_property='children'),
                Output(component_id='price-plot',component_property='children'),
-               Output(component_id='price2-plot',component_property='children')],Input(component_id='input-rarity', component_property='value'))
+               Output(component_id='price2-plot',component_property='children'),
+               Output(component_id='card-table',component_property='data')],Input(component_id='input-rarity', component_property='value'))
 # Computation to callback function and return graph
 def get_graph(rarity):
     if rarity == 'all':
@@ -114,7 +124,8 @@ def get_graph(rarity):
         color_fig = px.bar(color.sort_values('Count'), x='Color', y='Count', title='Color Identity Distribution',labels={'Color':'Color Identitiy','Count': '# of Occurences'})
         price_fig = px.bar(price_color, x='Color', y='Price', title='Distribution of Average Price Across Colors',labels={'Color':'Color Identity','Price':'Average Price (USD)'})
         price_fig2 = px.bar(price_types, x='Type', y='Price', title='Distribution of Average Price Across Card Types',labels={'Type':'Card Type','Price':'Average Price (USD)'})
-        return[dcc.Graph(figure=type_fig),dcc.Graph(figure=color_fig),dcc.Graph(figure=price_fig),dcc.Graph(figure=price_fig2)]
+        table = dash_table.DataTable(id='card-table',data=dfM.to_dict('records'),columns=[{'name':i,'id':i} for i in df.columns],page_size=10)
+        return[dcc.Graph(figure=type_fig),dcc.Graph(figure=color_fig),dcc.Graph(figure=price_fig),dcc.Graph(figure=price_fig2),dfall.to_dict('records')]
     if rarity == 'C':
         df, types, color, price_color, price_types = get_types(dfC)
         type_fig = px.bar(types.sort_values('Count'), x='Type', y='Count', title='Type Distribution',
@@ -126,7 +137,7 @@ def get_graph(rarity):
         price_fig2 = px.bar(price_types, x='Type', y='Price', title='Distribution of Average Price Across Card Types',
                             labels={'Type': 'Card Type', 'Price': 'Average Price (USD)'})
         return [dcc.Graph(figure=type_fig), dcc.Graph(figure=color_fig), dcc.Graph(figure=price_fig),
-                dcc.Graph(figure=price_fig2)]
+                dcc.Graph(figure=price_fig2),dfC.to_dict('records')]
     if rarity == 'U':
         df, types, color, price_color, price_types = get_types(dfU)
         type_fig = px.bar(types.sort_values('Count'), x='Type', y='Count', title='Type Distribution',
@@ -138,7 +149,7 @@ def get_graph(rarity):
         price_fig2 = px.bar(price_types, x='Type', y='Price', title='Distribution of Average Price Across Card Types',
                             labels={'Type': 'Card Type', 'Price': 'Average Price (USD)'})
         return [dcc.Graph(figure=type_fig), dcc.Graph(figure=color_fig), dcc.Graph(figure=price_fig),
-                dcc.Graph(figure=price_fig2)]
+                dcc.Graph(figure=price_fig2),dfU.to_dict('records')]
     if rarity == 'R':
         df, types, color, price_color, price_types = get_types(dfR)
         type_fig = px.bar(types.sort_values('Count'), x='Type', y='Count', title='Type Distribution',
@@ -150,7 +161,7 @@ def get_graph(rarity):
         price_fig2 = px.bar(price_types, x='Type', y='Price', title='Distribution of Average Price Across Card Types',
                             labels={'Type': 'Card Type', 'Price': 'Average Price (USD)'})
         return [dcc.Graph(figure=type_fig), dcc.Graph(figure=color_fig), dcc.Graph(figure=price_fig),
-                dcc.Graph(figure=price_fig2)]
+                dcc.Graph(figure=price_fig2),dfR.to_dict('records')]
     if rarity == 'M':
         df, types, color, price_color, price_types = get_types(dfM)
         type_fig = px.bar(types.sort_values('Count'), x='Type', y='Count', title='Type Distribution',
@@ -162,7 +173,9 @@ def get_graph(rarity):
         price_fig2 = px.bar(price_types, x='Type', y='Price', title='Distribution of Average Price Across Card Types',
                             labels={'Type': 'Card Type', 'Price': 'Average Price (USD)'})
         return [dcc.Graph(figure=type_fig), dcc.Graph(figure=color_fig), dcc.Graph(figure=price_fig),
-                dcc.Graph(figure=price_fig2)]
+                dcc.Graph(figure=price_fig2),dfM.to_dict('records')]
+    else:
+        return[dash.no_update,dash.no_update,dash.no_update,dash.no_update,dash.no_update]
 
 
 # Run the app
