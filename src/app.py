@@ -11,7 +11,7 @@ import plotly.figure_factory as ff
 
 # Read the card data data into pandas dataframe
 
-card_data = pd.read_csv('https://raw.githubusercontent.com/akonic13/mtg-app/main/card_data_test.csv')
+card_data = pd.read_csv('https://raw.githubusercontent.com/akonic13/mtg-web-scraper/main/card_data.csv')
 dftest = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/solar.csv')
 df = card_data.dropna(subset=['Price'], axis=0)
 
