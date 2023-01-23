@@ -40,7 +40,7 @@ Count occurences of the 7 card types
 '''
 
 
-def get_types(df):
+def calc_values(df):
     def typer(cardtype):
         if cardtype in [np.nan]:
             return 0
@@ -62,6 +62,7 @@ def get_types(df):
     dfcolor = dfcolor.rename(columns={'Color': 'Count', 'index': 'Color'})
 
     dfprice_color = df.groupby('Color').mean()['Price'].reset_index().sort_values('Price')
+
     price_type = []
     for _ in types:
         price_type.append([_, df[df[_] != 0].mean()['Price']])
@@ -88,7 +89,7 @@ app.layout = html.Div(children=[ html.H1('Magic the Gathering Card Analysis: Com
                                     {'label': 'Mythic Rare','value':'M'},
                                     {'label':'All rarities','value':'all'}],placeholder='Select a card rarity',style={'text-align-last':'center'}),
                                 # Segment 1
-                                dash_table.DataTable(id='card-table',data=df.to_dict('records'),columns=[{'name':i,'id':i} for i in df.columns],style_cell={'textAlign':'center'},page_size=10),
+                                dash_table.DataTable(id='card-table',data=df.to_dict('records'),columns=[{'name':i,'id':i} for i in df.columns],style_cell={'textAlign':'center'},sort_action='native',page_size=10),
                                 # Segment 2
                                 html.Div([ ],id='color-plot'),
                                 # Segment 3
@@ -119,7 +120,7 @@ Returns:
 # Computation to callback function and return graph
 def get_graph(rarity):
     if rarity == 'all':
-        df,types, color, price_color, price_types = get_types(dfall)
+        df,types, color, price_color, price_types = calc_values(dfall)
         type_fig = px.bar(types.sort_values('Count'),x='Type',y='Count',title='Type Distribution',labels={'Type':'Card Type','Count': '# of Occurences'})
         color_fig = px.bar(color.sort_values('Count'), x='Color', y='Count', title='Color Identity Distribution',labels={'Color':'Color Identitiy','Count': '# of Occurences'})
         price_fig = px.bar(price_color, x='Color', y='Price', title='Distribution of Average Price Across Colors',labels={'Color':'Color Identity','Price':'Average Price (USD)'})
@@ -127,7 +128,7 @@ def get_graph(rarity):
         table = dash_table.DataTable(id='card-table',data=dfM.to_dict('records'),columns=[{'name':i,'id':i} for i in df.columns],page_size=10)
         return[dcc.Graph(figure=type_fig),dcc.Graph(figure=color_fig),dcc.Graph(figure=price_fig),dcc.Graph(figure=price_fig2),dfall.to_dict('records')]
     if rarity == 'C':
-        df, types, color, price_color, price_types = get_types(dfC)
+        df, types, color, price_color, price_types = calc_values(dfC)
         type_fig = px.bar(types.sort_values('Count'), x='Type', y='Count', title='Type Distribution',
                           labels={'Type': 'Card Type', 'Count': '# of Occurences'})
         color_fig = px.bar(color.sort_values('Count'), x='Color', y='Count', title='Color Identity Distribution',
@@ -139,7 +140,7 @@ def get_graph(rarity):
         return [dcc.Graph(figure=type_fig), dcc.Graph(figure=color_fig), dcc.Graph(figure=price_fig),
                 dcc.Graph(figure=price_fig2),dfC.to_dict('records')]
     if rarity == 'U':
-        df, types, color, price_color, price_types = get_types(dfU)
+        df, types, color, price_color, price_types = calc_values(dfU)
         type_fig = px.bar(types.sort_values('Count'), x='Type', y='Count', title='Type Distribution',
                           labels={'Type': 'Card Type', 'Count': '# of Occurences'})
         color_fig = px.bar(color.sort_values('Count'), x='Color', y='Count', title='Color Identity Distribution',
@@ -151,7 +152,7 @@ def get_graph(rarity):
         return [dcc.Graph(figure=type_fig), dcc.Graph(figure=color_fig), dcc.Graph(figure=price_fig),
                 dcc.Graph(figure=price_fig2),dfU.to_dict('records')]
     if rarity == 'R':
-        df, types, color, price_color, price_types = get_types(dfR)
+        df, types, color, price_color, price_types = calc_values(dfR)
         type_fig = px.bar(types.sort_values('Count'), x='Type', y='Count', title='Type Distribution',
                           labels={'Type': 'Card Type', 'Count': '# of Occurences'})
         color_fig = px.bar(color.sort_values('Count'), x='Color', y='Count', title='Color Identity Distribution',
@@ -163,7 +164,7 @@ def get_graph(rarity):
         return [dcc.Graph(figure=type_fig), dcc.Graph(figure=color_fig), dcc.Graph(figure=price_fig),
                 dcc.Graph(figure=price_fig2),dfR.to_dict('records')]
     if rarity == 'M':
-        df, types, color, price_color, price_types = get_types(dfM)
+        df, types, color, price_color, price_types = calc_values(dfM)
         type_fig = px.bar(types.sort_values('Count'), x='Type', y='Count', title='Type Distribution',
                           labels={'Type': 'Card Type', 'Count': '# of Occurences'})
         color_fig = px.bar(color.sort_values('Count'), x='Color', y='Count', title='Color Identity Distribution',
